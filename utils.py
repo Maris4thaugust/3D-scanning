@@ -12,18 +12,18 @@ def draw_registration_result(source, target, transformation):
     source_temp.transform(transformation)
     o3d.visualization.draw_geometries([source_temp, target_temp])
 
+
 def GetAxis(p1, p2, p3):
+    def perpendicular_bisector_3d(pt1, pt2):
+        mid = (pt1 + pt2) / 2
+        direction = np.cross(normal, pt2 - pt1)
+        return mid, direction
     v1 = p2 - p1
     v2 = p3 - p1
     normal = np.cross(v1, v2)
     normal = normal / np.linalg.norm(normal)
     mid1 = (p1 + p2) / 2
     mid2 = (p2 + p3) / 2
-
-    def perpendicular_bisector_3d(pt1, pt2):
-        mid = (pt1 + pt2) / 2
-        direction = np.cross(normal, pt2 - pt1)
-        return mid, direction
 
     mid1, dir1 = perpendicular_bisector_3d(p1, p2)
     mid2, dir2 = perpendicular_bisector_3d(p2, p3)
@@ -42,13 +42,13 @@ def GetAxisAngleMatrix(Angle,Axis,Center):
     Compute the matrix for the rotation transformation around a fixed axis.
     """
     R = o3d.geometry.get_rotation_matrix_from_axis_angle(Axis*(-Angle))
-
+    # move the pc to the rotate point
     InitialTransformationOrigin = np.eye(4)  
     InitialTransformationOrigin[:3, 3] = -Center
-
+    # move the pc back to its initial position
     InitialTransformationBack = np.eye(4)
     InitialTransformationBack[:3, 3] = Center
-
+    # rotate the pc around the given axis
     InitialTransformationRot = np.eye(4)
     InitialTransformationRot[:3, :3] = R
 
@@ -131,26 +131,22 @@ def AddValuesToCsv(Dir,FileName,Attempt, Fitness, RMSE, CorrespondentSet):
                          "RMSE": RMSE, 
                          "Correspondent Set": CorrespondentSet})
 
-def SaveResult(file, dir, base_filename):
-    if not os.path.exists(dir):
-        raise FileNotFoundError(f"The folder '{dir}' does not exist.")
-    
-    # Determine the next available filename
-    i = 1
-    while True:
-        filename = f"{base_filename}_{i}.txt"
-        file_path = os.path.join(dir, filename)
-        if not os.path.exists(file_path):
-            break
-        i += 1
-    
-    # Save the data to the file
-    with open(file_path, 'w') as file:
-        if isinstance(file, (list, dict)):
-            file.write(str(file))
-        else:
-            file.write(file)
+def CreateResultFolder(base_path):
+    if not os.path.exists(base_path):
+        os.makedirs(base_path)
+    existing_folders = [f for f in os.listdir(base_path) if f.startswith('result_')]
+    folder_numbers = [int(f.split('_')[1]) for f in existing_folders if f.split('_')[1].isdigit()]
 
+    next_number = max(folder_numbers, default=0) + 1
+    folder_name = f'result_{next_number}'
+    folder_path = os.path.join(base_path, folder_name)
+
+    # Create the result folder
+    os.makedirs(folder_path)
+    print(f'Results will be saved in: {folder_path}')
+
+    return folder_path
 
 if __name__ == "__main__":
-   pass
+   Resultfolder= CreateResultFolder(base_path="Result")
+   print(type(Resultfolder))
