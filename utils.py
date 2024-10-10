@@ -12,7 +12,6 @@ def draw_registration_result(source, target, transformation):
     source_temp.transform(transformation)
     o3d.visualization.draw_geometries([source_temp, target_temp])
 
-
 def GetAxis(p1, p2, p3):
     def perpendicular_bisector_3d(pt1, pt2):
         mid = (pt1 + pt2) / 2
@@ -34,7 +33,6 @@ def GetAxis(p1, p2, p3):
         raise ValueError("The points do not form a valid circle in 3D space.")
     t = np.linalg.lstsq(A, b, rcond=None)[0]
     center = mid1 + t[0] * dir1
-    
     return np.array(center), normal
 
 def GetAxisAngleMatrix(Angle,Axis,Center):
@@ -53,15 +51,13 @@ def GetAxisAngleMatrix(Angle,Axis,Center):
     InitialTransformationRot[:3, :3] = R
 
     InitialTransformation = InitialTransformationBack @ InitialTransformationRot @ InitialTransformationOrigin
-
     return InitialTransformation
 
-def Registrate(Target, Pcd, VoxelSize, InitialTransformation):
+def Registrate(Target: o3d.geometry.PointCloud, Pcd: o3d.geometry.PointCloud, VoxelSize, InitialTransformation):
     if not Target.has_normals():
         Target.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=VoxelSize*4, max_nn=30))
     if not Pcd.has_normals():
         Pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=VoxelSize*4, max_nn=30))
-
     Threshold = VoxelSize * 0.4
     RefineRegis = o3d.pipelines.registration.registration_icp(
         Pcd, Target, Threshold, InitialTransformation,
@@ -71,11 +67,9 @@ def Registrate(Target, Pcd, VoxelSize, InitialTransformation):
     Fitness = RefineRegis.fitness
     Rmse = RefineRegis.inlier_rmse
     Correspondence = RefineRegis.correspondence_set
-    
     return Fitness, Rmse, Correspondence, Transformation
 
-
-def NoiseRemoving(Pcd,NbPoints: int =20, Radius: float=15, Iteration : int  =1):
+def NoiseRemoving(Pcd: o3d.geometry.PointCloud,NbPoints: int=20, Radius: float=15, Iteration: int =1) -> o3d.geometry.PointCloud:
     """
     Points with too few neighbors are considered outliers and removed.
     - NbPoints: Minimum number of neighbor of a point to be considerd inliner
@@ -84,7 +78,9 @@ def NoiseRemoving(Pcd,NbPoints: int =20, Radius: float=15, Iteration : int  =1):
     """
     for _ in range(Iteration):
         _ , ind = Pcd.remove_radius_outlier(NbPoints, Radius)
-        Pcd = Pcd.select_by_index(ind)   
+        Pcd = Pcd.select_by_index(ind)
+    if Pcd.is_empty():
+        raise ValueError("The resulting point cloud is empty after noise removal.")   
     return Pcd
 
 def getInfo_1():       
@@ -144,9 +140,34 @@ def CreateResultFolder(base_path):
     # Create the result folder
     os.makedirs(folder_path)
     print(f'Results will be saved in: {folder_path}')
-
     return folder_path
 
+def Pcd_density(Pcd: o3d.geometry.PointCloud, radius: float):
+    points = np.asarray(Pcd.points)
+    kdtree = o3d.geometry.KDTreeFlann(Pcd)
+    num_points = len(points)
+    density_estimates = []
+    for i in range(num_points):
+        k, _, _ = kdtree.search_radius_vector_3d(points[i], radius)
+        density = k 
+        density_estimates.append(density)
+    density_estimates = np.array(density_estimates)
+    highest_density = np.max(density_estimates)
+    lowwest_density = np.min(density_estimates)
+    average_density = np.mean(density_estimates)
+    return round(average_density),round(highest_density),round(lowwest_density)
+
+def PcdInsight(Pcd: o3d.geometry.PointCloud,VoxelSize):
+    Pcd = Pcd.voxel_down_sample(VoxelSize)
+    a,h,l = Pcd_density(Pcd,VoxelSize*3)
+    print(f"Voxel Size: {VoxelSize} ")
+    print(f"Number of points: {len(Pcd.points)} ")
+    print(f"Average density(No of neighbours/area) of pointcloud: {a} (points)")
+    print(f"Highest density(No of neighbours/area) of pointcloud: {h} (points)")
+    print(f"Lowest density(No of neighbours/area) of pointcloud: {l} (points)")
+
+
 if __name__ == "__main__":
-   Resultfolder= CreateResultFolder(base_path="Result")
-   print(type(Resultfolder))
+    Pcd = o3d.io.read_point_cloud("3005/1.ply")
+    VoxelSize = 4
+    PcdInsight(Pcd, VoxelSize)

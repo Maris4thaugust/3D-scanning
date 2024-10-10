@@ -2,6 +2,7 @@ from utils import *
 import open3d as o3d 
 import sys
 
+VoxelSize = 4
 def main():
     Resultfolder= CreateResultFolder(base_path="Result")
     FileName = "ExperimentResult.csv"
@@ -10,14 +11,11 @@ def main():
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
     
-    VoxelSize = 10
-    
     # PointCloud taking from camera position 1 (1-12)
     Center_1, Z_Axis_1, Box1 = getInfo_1()
     TargetCloud_1 = o3d.io.read_point_cloud("3005/1.ply")
     TargetCloud_1 = TargetCloud_1.crop(Box1)
-    TargetCloud_1 = TargetCloud_1.voxel_down_sample(VoxelSize)
-    TargetCloud_1_Filterd = NoiseRemoving(TargetCloud_1,30,VoxelSize*0.5,10)
+    TargetCloud_1_Filterd = NoiseRemoving(TargetCloud_1,10,VoxelSize*2,5)
     o3d.io.write_point_cloud(f"{Resultfolder}/TargetCloud_1.ply", TargetCloud_1_Filterd)
     
     # PointCloud taking from camera position 2 (13-24)
@@ -25,7 +23,7 @@ def main():
     TargetCloud_2 = o3d.io.read_point_cloud("3005/13.ply")
     TargetCloud_2 = TargetCloud_2.crop(Box2)
     TargetCloud_2 = TargetCloud_2.voxel_down_sample(VoxelSize)
-    TargetCloud_2_Filterd = NoiseRemoving(TargetCloud_2,30,VoxelSize*0.5,10)
+    TargetCloud_2_Filterd = NoiseRemoving(TargetCloud_2,10,VoxelSize*2,5)
     o3d.io.write_point_cloud(f"{Resultfolder}/TargetCloud_2.ply", TargetCloud_2_Filterd)
     
     # PointCloud taking from camera position 2 (25-36)
@@ -33,7 +31,7 @@ def main():
     TargetCloud_3 = o3d.io.read_point_cloud("3005/25.ply")
     TargetCloud_3 = TargetCloud_3.crop(Box3)
     TargetCloud_3 = TargetCloud_3.voxel_down_sample(VoxelSize)
-    TargetCloud_3_Filterd = NoiseRemoving(TargetCloud_3,30,VoxelSize*0.5,10)
+    TargetCloud_3_Filterd = NoiseRemoving(TargetCloud_3,10,VoxelSize*2,5)
     o3d.io.write_point_cloud(f"{Resultfolder}/TargetCloud_3.ply", TargetCloud_3_Filterd)
 
     Angle = np.radians(30)
@@ -55,7 +53,7 @@ def main():
             InitalMatrix = GetAxisAngleMatrix(Angle,Z_Axis_3,Center_3)
             SavedResult = "TargetCloud_3.ply"
 
-        Pcd_Filter = NoiseRemoving(Pcd,30,VoxelSize*0.5,10)
+        Pcd_Filter = NoiseRemoving(Pcd,10,VoxelSize*2,5)
         Fitness, Rmse, Correspondence, Transformation = Registrate(Target,Pcd_Filter,VoxelSize,InitalMatrix)       
         print(f"Attempt registrate {i}")                                                                 
         
@@ -72,14 +70,14 @@ def main():
                        RMSE=round(Rmse,4),
                        CorrespondentSet=len(np.asarray(Correspondence)))     
     # matching 3 point clouds
-    Mat1 = np.array([1,0,0,Center_1[0]-Center_2[0]],
+    Mat1 = np.array([[1,0,0,Center_1[0]-Center_2[0]],
                     [0,1,0,Center_1[1]-Center_2[1]],
                     [0,0,1,Center_1[2]-Center_2[2]],
-                    [0,0,0,1])
-    Mat2 = np.array([1,0,0,Center_1[0]-Center_3[0]],
+                    [0,0,0,1]])
+    Mat2 = np.array([[1,0,0,Center_1[0]-Center_3[0]],
                 [0,1,0,Center_1[1]-Center_3[1]],
                 [0,0,1,Center_1[2]-Center_3[2]],
-                [0,0,0,1])
+                [0,0,0,1]])
     Pc1 = o3d.io.read_point_cloud(f"{Resultfolder}/TargetCloud_1.ply")
     Pc2 = o3d.io.read_point_cloud(f"{Resultfolder}/TargetCloud_2.ply")
     Pc3 = o3d.io.read_point_cloud(f"{Resultfolder}/TargetCloud_3.ply")
@@ -102,5 +100,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # Target = o3d.io.read_point_cloud(f"Result/result_3/TargetCloud_1.ply")
+    # Target = o3d.io.read_point_cloud(f"Result/result_6/TargetCloud_2.ply")
     # o3d.visualization.draw_geometries([Target])
