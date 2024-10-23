@@ -55,9 +55,9 @@ def GetAxisAngleMatrix(Angle,Axis,Center):
 
 def Registrate(Target: o3d.geometry.PointCloud, Pcd: o3d.geometry.PointCloud, VoxelSize, InitialTransformation):
     if not Target.has_normals():
-        Target.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=VoxelSize*4, max_nn=30))
+        Target.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=VoxelSize*3, max_nn=30))
     if not Pcd.has_normals():
-        Pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=VoxelSize*4, max_nn=30))
+        Pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=VoxelSize*3, max_nn=30))
     Threshold = VoxelSize * 0.4
     RefineRegis = o3d.pipelines.registration.registration_icp(
         Pcd, Target, Threshold, InitialTransformation,
@@ -169,5 +169,5 @@ def PcdInsight(Pcd: o3d.geometry.PointCloud,VoxelSize):
 
 if __name__ == "__main__":
     Pcd = o3d.io.read_point_cloud("3005/1.ply")
-    VoxelSize = 4
+    VoxelSize = 2
     PcdInsight(Pcd, VoxelSize)
